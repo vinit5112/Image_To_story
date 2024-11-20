@@ -260,6 +260,7 @@ def use_gemini(image_path, genre, user_prompt, story_length):
         )
         return True, response.text
     except Exception as e:
+        print(f"Error in use_gemini: {str(e)}")  # Log the error to the console
         return False, f'Error with Gemini API: {str(e)}'
 
 @app.route('/')
