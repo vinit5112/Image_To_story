@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     form.addEventListener('submit', async function(event) {
         event.preventDefault();
         const formData = new FormData(this);
+        console.log('Form Data:', Object.fromEntries(formData));
 
         // Show loading indicator and disable button
         loadingIndicator.style.display = 'block';
@@ -27,6 +28,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             const result = await response.json();
+            console.log('Response:', result);
+
             if (response.ok) {
                 resultDiv.innerHTML = `
                     <img src="${result.image_url}" alt="Uploaded Image" id="story-image">
