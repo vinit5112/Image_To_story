@@ -1,5 +1,6 @@
 # app.py
 import os
+import tempfile
 from flask import Flask, request, jsonify, render_template, url_for
 from pathlib import Path
 import dotenv
@@ -277,19 +278,20 @@ def generate_story():
     if not image or not genre or not user_prompt or not story_length:
         return jsonify({'error': 'Please provide all required fields: image, genre, prompt, and story length.'}), 400
 
-    image_filename = secure_filename(image.filename)
-    image_path = os.path.join('static', 'uploads', image_filename)
-    image.save(image_path)
+    # Create a temporary file to store the uploaded image
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as temp_file:
+        image.save(temp_file.name)  # Save the uploaded image to the temporary file
+        temp_file_path = temp_file.name  # Get the path of the temporary file
 
-    success, story = use_gemini(image_path, genre, user_prompt, story_length)
+    success, story = use_gemini(temp_file_path, genre, user_prompt, story_length)
     
     if not success:
         return jsonify({'error': story}), 429
 
-    image_url = url_for('static', filename=f'uploads/{image.filename}', _external=True)
-    print(story)
-    return jsonify({'story': story, 'image_url': image_url})
+    # Clean up the temporary file if needed (optional, depending on your use case)
+    os.remove(temp_file_path)  # Remove the temporary file after use
+
+    return jsonify({'story': story})
 
 if __name__ == '__main__':
-    os.makedirs(os.path.join('static', 'uploads'), exist_ok=True)
     app.run(debug=True)
