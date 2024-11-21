@@ -7,6 +7,7 @@ import dotenv
 dotenv.load_dotenv()
 import google.generativeai as genai  # Correct import statement
 from werkzeug.utils import secure_filename
+import time
 
 app = Flask(__name__)
 
@@ -175,94 +176,104 @@ genre_icons = {
 "historical_fiction": "landmark"
 } 
 def use_gemini(image_path, genre, user_prompt, story_length):
-    try:
-        media = Path(image_path)
-        myfile = genai.upload_file(media)
-        
-        genre_prompt = genres.get(genre, "Write a story about:")
-        full_prompt = genre_prompt.replace("[USER_PROMPT]", user_prompt)
-        
-        additional_instructions = f"""
-        Based on the image provided and the story prompt, create a compelling narrative following these guidelines:
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            media = Path(image_path)
+            myfile = genai.upload_file(media)
+            
+            genre_prompt = genres.get(genre, "Write a story about:")
+            full_prompt = genre_prompt.replace("[USER_PROMPT]", user_prompt)
+            
+            additional_instructions = f"""
+            Based on the image provided and the story prompt, create a compelling narrative following these guidelines:
 
-        1. Visual Integration:
-        • Analyze the image for key elements, colors, mood, and symbols.
-        • Incorporate visual details to enhance setting, atmosphere, and character descriptions.
-        • Use the image to inspire unique plot elements or twists.
+            1. Visual Integration:
+            • Analyze the image for key elements, colors, mood, and symbols.
+            • Incorporate visual details to enhance setting, atmosphere, and character descriptions.
+            • Use the image to inspire unique plot elements or twists.
 
-        2. Character Development:
-        • Create 3-4 main characters with distinct personalities, backgrounds, and motivations.
-        • Ensure each character has a clear arc or journey.
-        • Develop complex, evolving relationships between characters.
-        • Reveal character traits through description, dialogue, and actions.
+            2. Character Development:
+            • Create 3-4 main characters with distinct personalities, backgrounds, and motivations.
+            • Ensure each character has a clear arc or journey.
+            • Develop complex, evolving relationships between characters.
+            • Reveal character traits through description, dialogue, and actions.
 
-        3. Story Structure:
-        • Craft a compelling opening hook.
-        • Establish setting, introduce key characters, and present the central conflict.
-        • Build rising action, incrementally raising stakes and tension.
-        • Create a climactic moment that brings the central conflict to a head.
-        • Conclude with a satisfying resolution, possibly leaving room for reflection.
+            3. Story Structure:
+            • Craft a compelling opening hook.
+            • Establish setting, introduce key characters, and present the central conflict.
+            • Build rising action, incrementally raising stakes and tension.
+            • Create a climactic moment that brings the central conflict to a head.
+            • Conclude with a satisfying resolution, possibly leaving room for reflection.
 
-        4. Sensory Storytelling:
-        • Engage all five senses in descriptions for an immersive experience.
-        • Use sensory details to establish mood and enhance characterization.
-        • Balance sensory descriptions with action and dialogue.
+            4. Sensory Storytelling:
+            • Engage all five senses in descriptions for an immersive experience.
+            • Use sensory details to establish mood and enhance characterization.
+            • Balance sensory descriptions with action and dialogue.
 
-        5. Dialogue and Interaction:
-        • Craft natural, character-specific dialogue that reveals personality and advances the plot.
-        • Use dialogue to create tension, provide exposition, and deepen relationships.
-        • Balance dialogue with narrative description and internal monologue.
+            5. Dialogue and Interaction:
+            • Craft natural, character-specific dialogue that reveals personality and advances the plot.
+            • Use dialogue to create tension, provide exposition, and deepen relationships.
+            • Balance dialogue with narrative description and internal monologue.
 
-        6. Thematic Development:
-        • Identify and explore central themes relevant to your genre and prompt.
-        • Weave thematic elements throughout the story organically.
+            6. Thematic Development:
+            • Identify and explore central themes relevant to your genre and prompt.
+            • Weave thematic elements throughout the story organically.
 
-        7. Genre-Specific Elements:
-        • Incorporate key elements of the chosen genre (refer to genre descriptions).
-        • Use genre conventions creatively, potentially subverting or reimagining them.
-        • Ensure genre elements serve the story and character development.
+            7. Genre-Specific Elements:
+            • Incorporate key elements of the chosen genre (refer to genre descriptions).
+            • Use genre conventions creatively, potentially subverting or reimagining them.
+            • Ensure genre elements serve the story and character development.
 
-        8. Pacing and Tension:
-        • Vary sentence and paragraph length to control pacing and emphasis.
-        • Create moments of tension and release throughout the story.
-        • Use foreshadowing and plant subtle clues for later payoff.
+            8. Pacing and Tension:
+            • Vary sentence and paragraph length to control pacing and emphasis.
+            • Create moments of tension and release throughout the story.
+            • Use foreshadowing and plant subtle clues for later payoff.
 
-        9. World-Building (if applicable):
-        • Develop a rich, internally consistent world that enhances the story.
-        • Reveal world details gradually through character interactions and plot events.
-        • Consider how the world's unique elements impact character motivations and plot.
+            9. World-Building (if applicable):
+            • Develop a rich, internally consistent world that enhances the story.
+            • Reveal world details gradually through character interactions and plot events.
+            • Consider how the world's unique elements impact character motivations and plot.
 
-        10. Emotional Resonance:
-            • Evoke specific emotions in the reader that align with your genre and story goals.
-            • Show characters' emotional journeys through thoughts, actions, and physical reactions.
-            • Create emotionally impactful moments that resonate with universal human experiences.
+            10. Emotional Resonance:
+                • Evoke specific emotions in the reader that align with your genre and story goals.
+                • Show characters' emotional journeys through thoughts, actions, and physical reactions.
+                • Create emotionally impactful moments that resonate with universal human experiences.
 
-        Adapt these guidelines to fit your specific genre, prompt, and storytelling goals. Create a cohesive, engaging narrative that brings your unique vision to life.
-        """
-        
-        if story_length == "short":
-            additional_instructions += "\nAim for a word count between 500-800 words."
-            max_tokens = 2048
-        else:  # long story
-            additional_instructions += "\nAim for a word count between 1000-1500 words."
-            max_tokens = 4096
-        
-        full_prompt += "\n\n" + additional_instructions
-        
-        model = genai.GenerativeModel("gemini-1.5-pro-002")
-        response = model.generate_content(
-            [myfile, full_prompt],
-            generation_config={
-                "max_output_tokens": max_tokens,
-                "temperature": 0.7,
-                "top_p": 1,
-                "top_k": 32
-            }
-        )
-        return True, response.text
-    except Exception as e:
-        print(f"Error in use_gemini: {str(e)}")  # Log the error to the console
-        return False, f'Error with Gemini API: {str(e)}'
+            Adapt these guidelines to fit your specific genre, prompt, and storytelling goals. Create a cohesive, engaging narrative that brings your unique vision to life.
+            """
+            
+            if story_length == "short":
+                additional_instructions += "\nAim for a word count between 500-800 words."
+                max_tokens = 2048
+            else:  # long story
+                additional_instructions += "\nAim for a word count between 1000-1500 words."
+                max_tokens = 4096
+            
+            full_prompt += "\n\n" + additional_instructions
+            
+            model = genai.GenerativeModel("gemini-1.5-pro-002")
+            start_time = time.time()
+            response = model.generate_content(
+                [myfile, full_prompt],
+                generation_config={
+                    "max_output_tokens": max_tokens,
+                    "temperature": 0.7,
+                    "top_p": 1,
+                    "top_k": 32
+                }
+            )
+            duration = time.time() - start_time
+            print(f"API call duration: {duration} seconds")
+            return True, response.text
+        except Exception as e:
+            if "504" in str(e):  # Check for timeout error
+                print(f"Timeout error. Attempt {attempt + 1} of {max_retries}. Retrying...")
+                time.sleep(2 ** attempt)  # Exponential backoff
+            else:
+                print(f"Error in use_gemini: {str(e)}")
+                return False, f'Error with Gemini API: {str(e)}'
+    return False, 'Max retries exceeded. Please try again later.'
 
 @app.route('/')
 def index():
