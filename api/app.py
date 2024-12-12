@@ -252,7 +252,7 @@ def use_gemini(image_path, genre, user_prompt, story_length):
             
             full_prompt += "\n\n" + additional_instructions
             
-            model = genai.GenerativeModel("gemini-1.5-pro-002")
+            model = genai.GenerativeModel("gemini-2.0-flash-exp")
             start_time = time.time()
             response = model.generate_content(
                 [myfile, full_prompt],
